@@ -106,6 +106,8 @@ docker run --rm --privileged \
         export LDFLAGS="-Wl,-O1,--sort-common,--as-needed"
         export RUSTUP_TOOLCHAIN=stable
         export CARGO_HOME=/source/.cargo
+        cargo fetch --locked \
+            --manifest-path /source/gst-plugins-rs/Cargo.toml
         cd /source/build
         ROOTLESS_CONTAINER= ../configure.sh \
             --container-engine=none \
