@@ -9,7 +9,7 @@ printf '%s\n' '{"tag_name":"GE-Proton11-1"}' > "$test_dir/ge.json"
 printf '%s\n' '{"tag_name":"cachyos-11.0-20260702-slr"}' \
     > "$test_dir/cachyos.json"
 printf '%s\n' \
-    'proton-cachyos-slr-linuwux-1:11.0.20260702-1.1-x86_64.pkg.tar.zst' \
+    'proton-cachyos-slr-linuwux-1_11.0.20260702-1.1-x86_64.pkg.tar.zst' \
     'umip-limit-fix-linuwux-dkms-1.0.0-1-any.pkg.tar.zst' \
     > "$test_dir/assets"
 
@@ -36,13 +36,13 @@ assert_output() {
 assert_output ge_build=true
 assert_output ge_tag=GE-Proton11-1
 assert_output ge_pkgver=GE_Proton11_1
-assert_output ge_filename=proton-ge-custom-linuwux-1:GE_Proton11_1-1.1-x86_64.pkg.tar.zst
+assert_output ge_filename=proton-ge-custom-linuwux-1_GE_Proton11_1-1.1-x86_64.pkg.tar.zst
 assert_output slr_build=false
 assert_output slr_tag=cachyos-11.0-20260702-slr
 assert_output slr_pkgver=11.0.20260702
 assert_output native_build=true
 assert_output native_tag=cachyos-11.0-20260702-native
-assert_output native_filename=proton-cachyos-native-linuwux-1:11.0.20260702-1.1-x86_64.pkg.tar.zst
+assert_output native_filename=proton-cachyos-native-linuwux-1_11.0.20260702-1.1-x86_64.pkg.tar.zst
 assert_output module_build=false
 assert_output module_pkgver=1.0.0
 assert_output module_pkgrel=1

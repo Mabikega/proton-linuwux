@@ -141,8 +141,7 @@ jobs:
             recipe linuwux-redist.tar.gz "$PATCH_RELEASE" \
             proton-ge-custom-linuwux "$PKGVER" "Proton-GE LinUwUx" ge
           scripts/run-makepkg-container.sh archlinux:base-devel recipe --nodeps
-          mkdir -p output
-          cp recipe/*.pkg.tar.zst output/
+          scripts/stage-package.sh recipe output
           scripts/write-lineage.sh \
             output/proton-ge-custom-linuwux.lineage.txt \
             proton-ge-custom-linuwux "$BUILD_NAME" \
@@ -225,8 +224,7 @@ jobs:
             proton-cachyos-slr-linuwux "$PKGVER" \
             "proton-${SOURCE_TAG%-slr} (steam linux runtime) LinUwUx" slr
           scripts/run-makepkg-container.sh archlinux:base-devel "$recipe" --nodeps
-          mkdir -p output
-          cp "$recipe"/*.pkg.tar.zst output/
+          scripts/stage-package.sh "$recipe" output
           scripts/write-lineage.sh \
             output/proton-cachyos-slr-linuwux.lineage.txt \
             proton-cachyos-slr-linuwux "$SOURCE_TAG" \
@@ -300,8 +298,7 @@ jobs:
             proton-cachyos-native-linuwux "$PKGVER" \
             "proton-${SOURCE_TAG%-native} (native) LinUwUx" native
           scripts/run-makepkg-container.sh archlinux:base-devel recipe --nodeps
-          mkdir -p output
-          cp recipe/*.pkg.tar.zst output/
+          scripts/stage-package.sh recipe output
           scripts/write-lineage.sh \
             output/proton-cachyos-native-linuwux.lineage.txt \
             proton-cachyos-native-linuwux "$SOURCE_TAG" \
@@ -332,8 +329,7 @@ jobs:
         run: |
           scripts/run-makepkg-container.sh \
             archlinux:base-devel module-recipe --nodeps
-          mkdir -p output
-          cp module-recipe/*.pkg.tar.zst output/
+          scripts/stage-package.sh module-recipe output
           scripts/write-module-lineage.sh \
             output/umip-limit-fix-linuwux-dkms.lineage.txt \
             kernel-module module-recipe/.linuwux-container-digest

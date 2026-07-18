@@ -65,7 +65,7 @@ package_data() {
     local version filename build
 
     version="1:$pkgver-1.$patch_release"
-    filename="$package_name-$version-x86_64.pkg.tar.zst"
+    filename="$package_name-${version//:/_}-x86_64.pkg.tar.zst"
     build=true
     if [[ "$force_build" != true ]] && grep -Fxq "$filename" "$work_dir/assets"; then
         build=false
