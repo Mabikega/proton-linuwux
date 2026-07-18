@@ -1,0 +1,375 @@
+name: Build LinUwUx packages
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild packages already present in the repository release
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches:
+      - main
+    paths:
+      - LinUwUx.patch
+      - PATCH_RELEASE
+      - patches/**
+      - packaging/**
+      - kernel-module/**
+      - scripts/**
+      - .github/workflows/build-packages.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: patched-proton-packages
+  cancel-in-progress: false
+
+env:
+  PACKAGE_RELEASE_TAG: packages
+
+jobs:
+  detect:
+    name: Detect upstream versions
+    runs-on: ubuntu-24.04
+    outputs:
+      ge_build: ${{ steps.detect.outputs.ge_build }}
+      ge_tag: ${{ steps.detect.outputs.ge_tag }}
+      ge_commit: ${{ steps.detect.outputs.ge_commit }}
+      ge_pkgver: ${{ steps.detect.outputs.ge_pkgver }}
+      ge_filename: ${{ steps.detect.outputs.ge_filename }}
+      slr_build: ${{ steps.detect.outputs.slr_build }}
+      slr_tag: ${{ steps.detect.outputs.slr_tag }}
+      slr_commit: ${{ steps.detect.outputs.slr_commit }}
+      slr_pkgver: ${{ steps.detect.outputs.slr_pkgver }}
+      slr_filename: ${{ steps.detect.outputs.slr_filename }}
+      native_build: ${{ steps.detect.outputs.native_build }}
+      native_tag: ${{ steps.detect.outputs.native_tag }}
+      native_commit: ${{ steps.detect.outputs.native_commit }}
+      native_pkgver: ${{ steps.detect.outputs.native_pkgver }}
+      native_filename: ${{ steps.detect.outputs.native_filename }}
+      module_build: ${{ steps.detect.outputs.module_build }}
+      module_pkgver: ${{ steps.detect.outputs.module_pkgver }}
+      module_pkgrel: ${{ steps.detect.outputs.module_pkgrel }}
+      module_filename: ${{ steps.detect.outputs.module_filename }}
+      patch_release: ${{ steps.detect.outputs.patch_release }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Detect missing package versions
+        id: detect
+        env:
+          FORCE_BUILD: ${{ inputs.force || false }}
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/detect-updates.sh
+
+      - name: Show detection result
+        run: |
+          echo "GE:     ${{ steps.detect.outputs.ge_filename }} build=${{ steps.detect.outputs.ge_build }}"
+          echo "SLR:    ${{ steps.detect.outputs.slr_filename }} build=${{ steps.detect.outputs.slr_build }}"
+          echo "Native: ${{ steps.detect.outputs.native_filename }} build=${{ steps.detect.outputs.native_build }}"
+          echo "Module: ${{ steps.detect.outputs.module_filename }} build=${{ steps.detect.outputs.module_build }}"
+
+  build_ge:
+    name: Build proton-ge-custom-linuwux
+    needs: detect
+    if: needs.detect.outputs.ge_build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Free runner disk space
+        uses: endersonmenezes/free-disk-space@7901478139cff6e9d44df5972fd8ab8fcade4db1 # v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          remove_tool_cache: true
+          remove_swap: true
+          remove_packages: |
+            azure-cli google-cloud-cli google-chrome-stable firefox microsoft-edge-stable
+            postgresql* mysql* php* temurin-* *llvm* clang* mono-devel powershell dotnet-sdk-*
+          remove_folders: |
+            /usr/share/swift /usr/share/miniconda /usr/local/lib/node_modules
+            /usr/local/share/chromium /usr/local/share/powershell /usr/local/julia*
+            /usr/local/aws-cli /usr/local/aws-sam-cli /usr/share/gradle /usr/share/az*
+            /usr/local/.ghcup
+
+      - name: Prepare host
+        run: sudo apt-get update && sudo apt-get install -y ccache fontforge-nox
+
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Check out exact GE-Proton source
+        env:
+          SOURCE_TAG: ${{ needs.detect.outputs.ge_tag }}
+        run: |
+          git clone --depth=1 --branch "$SOURCE_TAG" \
+            https://github.com/GloriousEggroll/proton-ge-custom.git upstream
+          git -C upstream submodule update --init --filter=tree:0 --recursive
+
+      - name: Apply upstream and local patches
+        run: |
+          cd upstream
+          ./patches/protonprep-valve-staging.sh > ../upstream-patches.log 2>&1 || true
+          ../scripts/apply-linuwux-patch.sh . ge
+          patch --batch --forward -Np1 -i .github/patches/0001-build-strip-binaries-early.patch
+
+      - name: Build redistributable archive
+        env:
+          BUILD_NAME: ${{ needs.detect.outputs.ge_tag }}
+        run: |
+          mkdir upstream/build
+          cd upstream/build
+          ../configure.sh --build-name="$BUILD_NAME" --container-engine=docker
+          make -j"$(nproc)" redist
+
+      - name: Build Arch package
+        env:
+          PATCH_RELEASE: ${{ needs.detect.outputs.patch_release }}
+          BUILD_NAME: ${{ needs.detect.outputs.ge_tag }}
+          PKGVER: ${{ needs.detect.outputs.ge_pkgver }}
+        run: |
+          mkdir recipe
+          cp "upstream/build/$BUILD_NAME.tar.gz" recipe/linuwux-redist.tar.gz
+          scripts/prepare-binary-recipe.sh \
+            recipe linuwux-redist.tar.gz "$PATCH_RELEASE" \
+            proton-ge-custom-linuwux "$PKGVER" "Proton-GE LinUwUx" ge
+          scripts/run-makepkg-container.sh archlinux:base-devel recipe --nodeps
+          mkdir -p output
+          cp recipe/*.pkg.tar.zst output/
+          scripts/write-lineage.sh \
+            output/proton-ge-custom-linuwux.lineage.txt \
+            proton-ge-custom-linuwux "$BUILD_NAME" \
+            "${{ needs.detect.outputs.ge_commit }}" \
+            recipe/.linuwux-container-digest
+
+      - name: Upload package
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: package-proton-ge-custom-linuwux
+          path: output/
+          if-no-files-found: error
+
+  build_slr:
+    name: Build proton-cachyos-slr-linuwux
+    needs: detect
+    if: needs.detect.outputs.slr_build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Free runner disk space
+        uses: endersonmenezes/free-disk-space@7901478139cff6e9d44df5972fd8ab8fcade4db1 # v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          remove_tool_cache: true
+          remove_swap: true
+          remove_packages: |
+            azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox
+            postgresql* temurin-* *llvm* mysql* dotnet-sdk-*
+          remove_folders: |
+            /usr/share/swift /usr/share/miniconda /usr/share/az*
+            /usr/local/lib/node_modules /usr/local/share/chromium
+            /usr/local/share/powershell /usr/local/julia* /usr/local/aws-cli
+            /usr/local/aws-sam-cli /usr/share/gradle
+
+      - name: Prepare host
+        run: sudo apt-get update && sudo apt-get install -y ccache fontforge-nox
+
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Check out exact Proton-CachyOS SLR source
+        env:
+          SOURCE_TAG: ${{ needs.detect.outputs.slr_tag }}
+        run: |
+          git clone --depth=1 --branch "$SOURCE_TAG" \
+            https://github.com/CachyOS/proton-cachyos.git upstream
+          git -C upstream submodule update --init --filter=tree:0 --recursive
+
+      - name: Apply local patch
+        run: scripts/apply-linuwux-patch.sh upstream cachyos
+
+      - name: Build redistributable archive
+        env:
+          SOURCE_TAG: ${{ needs.detect.outputs.slr_tag }}
+        run: |
+          build_name="proton-${SOURCE_TAG}-x86_64"
+          mkdir upstream/build
+          cd upstream/build
+          CFLAGS='-O3 -march=nocona -mtune=core-avx2' \
+          RUSTFLAGS='-Copt-level=3 -Ctarget-cpu=nocona' \
+          USE_LTO=0 \
+            ../configure.sh --build-name="$build_name" --container-engine=docker
+          make redist
+
+      - name: Build Arch package
+        env:
+          SOURCE_TAG: ${{ needs.detect.outputs.slr_tag }}
+          PATCH_RELEASE: ${{ needs.detect.outputs.patch_release }}
+          PKGVER: ${{ needs.detect.outputs.slr_pkgver }}
+        run: |
+          recipe=recipe
+          mkdir "$recipe"
+          build_name="proton-${SOURCE_TAG}-x86_64"
+          cp "upstream/build/$build_name.tar.xz" "$recipe/linuwux-redist.tar.xz"
+          scripts/prepare-binary-recipe.sh \
+            "$recipe" linuwux-redist.tar.xz "$PATCH_RELEASE" \
+            proton-cachyos-slr-linuwux "$PKGVER" \
+            "proton-${SOURCE_TAG%-slr} (steam linux runtime) LinUwUx" slr
+          scripts/run-makepkg-container.sh archlinux:base-devel "$recipe" --nodeps
+          mkdir -p output
+          cp "$recipe"/*.pkg.tar.zst output/
+          scripts/write-lineage.sh \
+            output/proton-cachyos-slr-linuwux.lineage.txt \
+            proton-cachyos-slr-linuwux "$SOURCE_TAG" \
+            "${{ needs.detect.outputs.slr_commit }}" \
+            "$recipe/.linuwux-container-digest"
+
+      - name: Upload package
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: package-proton-cachyos-slr-linuwux
+          path: output/
+          if-no-files-found: error
+
+  build_native:
+    name: Build proton-cachyos-native-linuwux
+    needs: detect
+    if: needs.detect.outputs.native_build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Free runner disk space
+        uses: endersonmenezes/free-disk-space@7901478139cff6e9d44df5972fd8ab8fcade4db1 # v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          remove_tool_cache: true
+          remove_swap: true
+          remove_packages: |
+            azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox
+            postgresql* temurin-* *llvm* mysql* dotnet-sdk-*
+          remove_folders: |
+            /usr/share/swift /usr/share/miniconda /usr/share/az*
+            /usr/local/lib/node_modules /usr/local/share/chromium
+            /usr/local/share/powershell /usr/local/julia* /usr/local/aws-cli
+            /usr/local/aws-sam-cli /usr/share/gradle
+
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Check out exact Proton-CachyOS native source
+        env:
+          SOURCE_TAG: ${{ needs.detect.outputs.native_tag }}
+        run: |
+          git clone --depth=1 --branch "$SOURCE_TAG" \
+            https://github.com/CachyOS/proton-cachyos.git upstream
+          git -C upstream submodule update --init --filter=tree:0 --recursive
+
+      - name: Apply local patch
+        run: scripts/apply-linuwux-patch.sh upstream cachyos
+
+      - name: Build native redistributable archive
+        env:
+          SOURCE_TAG: ${{ needs.detect.outputs.native_tag }}
+        run: |
+          mkdir native-output
+          scripts/build-native-container.sh upstream native-output \
+            "proton-${SOURCE_TAG}-x86_64.tar.xz"
+
+      - name: Build native Arch package
+        env:
+          SOURCE_TAG: ${{ needs.detect.outputs.native_tag }}
+          PATCH_RELEASE: ${{ needs.detect.outputs.patch_release }}
+          PKGVER: ${{ needs.detect.outputs.native_pkgver }}
+        run: |
+          mkdir recipe
+          cp "native-output/proton-${SOURCE_TAG}-x86_64.tar.xz" \
+            recipe/linuwux-redist.tar.xz
+          scripts/prepare-binary-recipe.sh \
+            recipe linuwux-redist.tar.xz "$PATCH_RELEASE" \
+            proton-cachyos-native-linuwux "$PKGVER" \
+            "proton-${SOURCE_TAG%-native} (native) LinUwUx" native
+          scripts/run-makepkg-container.sh archlinux:base-devel recipe --nodeps
+          mkdir -p output
+          cp recipe/*.pkg.tar.zst output/
+          scripts/write-lineage.sh \
+            output/proton-cachyos-native-linuwux.lineage.txt \
+            proton-cachyos-native-linuwux "$SOURCE_TAG" \
+            "${{ needs.detect.outputs.native_commit }}" \
+            native-output/.linuwux-container-digest \
+            native-output/.linuwux-inputs.sha256
+
+      - name: Upload package
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: package-proton-cachyos-native-linuwux
+          path: output/
+          if-no-files-found: error
+
+  build_module:
+    name: Build umip-limit-fix-linuwux-dkms
+    needs: detect
+    if: needs.detect.outputs.module_build == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Prepare local module recipe
+        run: scripts/prepare-module-recipe.sh kernel-module module-recipe
+
+      - name: Build Arch package
+        run: |
+          scripts/run-makepkg-container.sh \
+            archlinux:base-devel module-recipe --nodeps
+          mkdir -p output
+          cp module-recipe/*.pkg.tar.zst output/
+          scripts/write-module-lineage.sh \
+            output/umip-limit-fix-linuwux-dkms.lineage.txt \
+            kernel-module module-recipe/.linuwux-container-digest
+
+      - name: Upload package
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: package-umip-limit-fix-linuwux-dkms
+          path: output/
+          if-no-files-found: error
+
+  publish:
+    name: Publish pacman repository
+    needs: [detect, build_ge, build_slr, build_native, build_module]
+    if: >-
+      always() &&
+      needs.detect.result == 'success' &&
+      (needs.build_ge.result == 'success' ||
+       needs.build_slr.result == 'success' ||
+       needs.build_native.result == 'success' ||
+       needs.build_module.result == 'success')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Download built packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: package-*
+          path: staged
+          merge-multiple: true
+
+      - name: Update release-backed repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
+          REPO_GPG_PASSPHRASE: ${{ secrets.REPO_GPG_PASSPHRASE }}
+        run: scripts/publish-repo.sh staged

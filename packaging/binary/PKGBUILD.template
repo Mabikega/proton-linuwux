@@ -1,0 +1,147 @@
+pkgname=@PKGNAME@
+pkgver=@PKGVER@
+pkgrel=@PKGREL@
+epoch=1
+pkgdesc="Patched Proton compatibility tool built from an upstream GitHub release"
+arch=(x86_64)
+url="https://github.com"
+license=(BSD LGPL zlib MIT MPL custom)
+options=(!strip emptydirs)
+provides=()
+conflicts=()
+replaces=()
+_variant=@VARIANT@
+_archive=@ARCHIVE@
+_compatdir="usr/share/steam/compatibilitytools.d/${pkgname}"
+backup=("${_compatdir}/user_settings.py")
+source=(
+    "${_archive}"
+    compatibilitytool.vdf
+    user_settings.py
+    ntsync.conf
+)
+noextract=("${_archive}")
+sha256sums=(
+    @ARCHIVE_SHA256@
+    @VDF_SHA256@
+    @SETTINGS_SHA256@
+    @NTSYNC_SHA256@
+)
+
+if [[ $_variant == ge ]]; then
+    depends=(python)
+    optdepends=(
+        'steam: use this compatibility tool with Steam'
+        'umu-launcher: use this compatibility tool with umu'
+        'vulkan-driver: DXVK and VKD3D support'
+        'lib32-vulkan-driver: 32-bit DXVK and VKD3D support'
+    )
+elif [[ $_variant == slr ]]; then
+    depends=(
+        bash coreutils curl dbus desktop-file-utils diffutils freetype2
+        gdk-pixbuf2 glibc hicolor-icon-theme libgcc libxcrypt
+        libxcrypt-compat libxkbcommon-x11 lsb-release lsof nss python
+        ttf-font usbutils vulkan-driver vulkan-icd-loader xdg-user-dirs
+        xorg-xrandr xz
+        lib32-alsa-plugins lib32-fontconfig lib32-gcc-libs lib32-glibc
+        lib32-libgl lib32-libgpg-error lib32-libnm lib32-libva lib32-libx11
+        lib32-libxcrypt lib32-libxcrypt-compat lib32-libxinerama lib32-libxss
+        lib32-nss lib32-pipewire lib32-systemd lib32-vulkan-driver
+        lib32-vulkan-icd-loader
+    )
+    optdepends=(
+        'steam: use this compatibility tool with Steam'
+        'umu-launcher: use this compatibility tool with umu'
+        'NTSYNC-MODULE: ntsync support'
+    )
+else
+    depends=(
+        attr lib32-attr cabextract desktop-file-utils
+        fontconfig lib32-fontconfig flac lib32-flac freetype2 lib32-freetype2
+        libgcc lib32-gcc-libs gettext lib32-gettext glib2 lib32-glib2
+        glibc lib32-glibc libgudev lib32-libgudev libnsl lib32-libnsl
+        libpcap lib32-libpcap libunwind lib32-libunwind libvpx lib32-libvpx
+        libwebp lib32-libwebp libx11 lib32-libx11 libxcursor lib32-libxcursor
+        libxext lib32-libxext libxkbcommon lib32-libxkbcommon
+        libxml2 lib32-libxml2 libxi lib32-libxi libxrandr lib32-libxrandr
+        mpg123 lib32-mpg123 pipewire lib32-pipewire python python-six
+        speex lib32-speex speexdsp lib32-speexdsp
+        atk lib32-atk cairo lib32-cairo curl lib32-curl
+        dbus-glib lib32-dbus-glib freeglut lib32-freeglut
+        gdk-pixbuf2 lib32-gdk-pixbuf2 glu lib32-glu lcms2 lib32-lcms2
+        libcaca lib32-libcaca libcanberra lib32-libcanberra dbus lib32-dbus
+        libdrm lib32-libdrm libice lib32-libice libibus libnm lib32-libnm
+        libusb lib32-libusb libvdpau lib32-libvdpau libvorbis lib32-libvorbis
+        libxft lib32-libxft libxmu lib32-libxmu libxrender lib32-libxrender
+        libxtst lib32-libxtst nspr lib32-nspr openal lib32-openal
+        pango lib32-pango sdl2-compat lib32-sdl2-compat librsvg
+        libsm lib32-libsm libtheora lib32-libtheora
+        vulkan-driver lib32-vulkan-driver unzip wayland lib32-wayland
+        xz lib32-xz
+    )
+    optdepends=(
+        'alsa-lib: ALSA support'
+        'lib32-alsa-lib: 32-bit ALSA support'
+        'alsa-plugins: additional ALSA plugins'
+        'lib32-alsa-plugins: additional 32-bit ALSA plugins'
+        'ffmpeg: multimedia support'
+        'gnutls: TLS support'
+        'lib32-gnutls: 32-bit TLS support'
+        'gtk3: GTK integration'
+        'lib32-gtk3: 32-bit GTK integration'
+        'libgphoto2: camera support'
+        'libpulse: PulseAudio support'
+        'lib32-libpulse: 32-bit PulseAudio support'
+        'libva: video acceleration'
+        'lib32-libva: 32-bit video acceleration'
+        'libxcomposite: X11 composite support'
+        'lib32-libxcomposite: 32-bit X11 composite support'
+        'libxinerama: X11 multi-monitor support'
+        'lib32-libxinerama: 32-bit X11 multi-monitor support'
+        'opencl-icd-loader: OpenCL support'
+        'lib32-opencl-icd-loader: 32-bit OpenCL support'
+        'pcsclite: smart-card support'
+        'lib32-pcsclite: 32-bit smart-card support'
+        'samba: NTLM and network integration'
+        'steam: use this compatibility tool with Steam'
+        'umu-launcher: use this compatibility tool with umu'
+        'unixodbc: ODBC support'
+        'v4l-utils: video capture support'
+        'lib32-v4l-utils: 32-bit video capture support'
+        'vulkan-icd-loader: Vulkan support'
+        'lib32-vulkan-icd-loader: 32-bit Vulkan support'
+        'NTSYNC-MODULE: ntsync support'
+    )
+fi
+
+package() {
+    local destination="${pkgdir}/${_compatdir}"
+    install -d "$destination"
+    bsdtar -xf "${srcdir}/${_archive}" -C "$destination" --strip-components 1
+    install -Dm644 "$srcdir/compatibilitytool.vdf" \
+        "$destination/compatibilitytool.vdf"
+    install -Dm644 "$srcdir/user_settings.py" "$destination/user_settings.py"
+    install -Dm644 "$srcdir/ntsync.conf" \
+        "$pkgdir/usr/lib/modules-load.d/10-${pkgname}.conf"
+
+    install -d "$pkgdir/usr/share/licenses/${pkgname}"
+    local license_file
+    for license_file in LICENSE LICENSE.OFL PATENTS.AV1; do
+        if [[ -f "$destination/$license_file" ]]; then
+            mv "$destination/$license_file" \
+                "$pkgdir/usr/share/licenses/${pkgname}/$license_file"
+        fi
+    done
+
+    if [[ $_variant == ge ]]; then
+        install -Dm755 /dev/stdin "$pkgdir/usr/bin/proton-ge-linuwux" <<EOF
+#!/usr/bin/env bash
+exec /usr/share/steam/compatibilitytools.d/${pkgname}/proton run "\$@"
+EOF
+        install -Dm644 /dev/stdin \
+            "$pkgdir/etc/security/limits.d/10-games-linuwux.conf" <<'EOF'
+@games hard nofile 524288
+@games soft nofile 524288
+EOF
+    fi
+}

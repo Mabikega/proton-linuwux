@@ -1,0 +1,35 @@
+pkgname=umip-limit-fix-linuwux-dkms
+pkgver=@VERSION@
+pkgrel=@RELEASE@
+pkgdesc='LinUwUx DKMS module correcting x86 UMIP-emulated SGDT and SIDT limits'
+arch=(any)
+url='@URL@'
+license=(GPL-2.0-only)
+depends=(dkms)
+provides=()
+conflicts=()
+replaces=()
+options=(!strip)
+source=(
+    Makefile
+    dkms.conf
+    umip_ibt_thunks_linuwux.S
+    umip_limit_fix_linuwux_main.c
+)
+sha256sums=(
+    @MAKEFILE_SHA256@
+    @DKMS_SHA256@
+    @THUNKS_SHA256@
+    @MODULE_SHA256@
+)
+
+package() {
+    local source_dir="$pkgdir/usr/src/umip-limit-fix-linuwux-$pkgver"
+
+    install -Dm644 "$srcdir/Makefile" "$source_dir/Makefile"
+    install -Dm644 "$srcdir/dkms.conf" "$source_dir/dkms.conf"
+    install -Dm644 "$srcdir/umip_ibt_thunks_linuwux.S" \
+        "$source_dir/umip_ibt_thunks_linuwux.S"
+    install -Dm644 "$srcdir/umip_limit_fix_linuwux_main.c" \
+        "$source_dir/umip_limit_fix_linuwux_main.c"
+}
