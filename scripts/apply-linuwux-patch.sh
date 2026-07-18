@@ -45,7 +45,7 @@ required_checks=(
 for check in "${required_checks[@]}"; do
     file=${check%%|*}
     pattern=${check#*|}
-    if ! rg --fixed-strings --quiet "$pattern" "$source_dir/$file"; then
+    if ! grep -Fq -- "$pattern" "$source_dir/$file"; then
         echo "Patched source is missing required marker: $pattern" >&2
         exit 1
     fi
