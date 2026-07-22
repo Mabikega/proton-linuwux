@@ -65,7 +65,21 @@ docker run --rm --privileged \
             lib32-sdl2-compat librsvg libsm lib32-libsm libtheora
             lib32-libtheora unzip wayland lib32-wayland xz lib32-xz
         )
-        pacman -Syu --needed --noconfirm "${packages[@]}"
+        sed -i \
+            "s/^ParallelDownloads[[:space:]]*=.*/ParallelDownloads = 5/" \
+            /etc/pacman.conf
+        for attempt in first second third fourth; do
+            if pacman -Syu --needed --noconfirm --disable-download-timeout \
+                "${packages[@]}"; then
+                break
+            fi
+            if [[ $attempt == fourth ]]; then
+                echo "Package installation failed after all retries" >&2
+                exit 1
+            fi
+            echo "Package installation failed; retrying cached transaction" >&2
+            sleep 10
+        done
 
         mkdir -p /source/build/wrappers
         for architecture in i686 x86_64; do
