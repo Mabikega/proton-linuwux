@@ -81,6 +81,14 @@ docker run --rm --privileged \
             sleep 10
         done
 
+        # The checkout is owned by the GitHub runner user but this container
+        # runs as root. Allow Git metadata reads only for the mounted checkout
+        # and its checked-out submodules so upstream version generation works.
+        while IFS= read -r -d "" git_entry; do
+            git config --global --add safe.directory "${git_entry%/.git}"
+        done < <(find /source -name .git \
+            \( -type f -o -type d \) -print0)
+
         mkdir -p /source/build/wrappers
         for architecture in i686 x86_64; do
             if [[ $architecture == i686 ]]; then
