@@ -111,7 +111,7 @@ jobs:
         run: |
           git clone --depth=1 --branch "$SOURCE_TAG" \
             https://github.com/GloriousEggroll/proton-ge-custom.git upstream
-          git -C upstream submodule update --init --filter=tree:0 --recursive
+          scripts/update-submodules.sh upstream
 
       - name: Apply upstream and local patches
         run: |
@@ -191,7 +191,7 @@ jobs:
         run: |
           git clone --depth=1 --branch "$SOURCE_TAG" \
             https://github.com/CachyOS/proton-cachyos.git upstream
-          git -C upstream submodule update --init --filter=tree:0 --recursive
+          scripts/update-submodules.sh upstream
 
       - name: Apply local patch
         run: scripts/apply-linuwux-patch.sh upstream cachyos
@@ -271,7 +271,7 @@ jobs:
         run: |
           git clone --depth=1 --branch "$SOURCE_TAG" \
             https://github.com/CachyOS/proton-cachyos.git upstream
-          git -C upstream submodule update --init --filter=tree:0 --recursive
+          scripts/update-submodules.sh upstream
 
       - name: Apply local patch
         run: scripts/apply-linuwux-patch.sh upstream cachyos
