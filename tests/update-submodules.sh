@@ -32,7 +32,7 @@ TEST_STATE="$test_dir/state" PATH="$test_dir/bin:/usr/bin:/bin" \
 test -f "$test_dir/state/first"
 test -f "$test_dir/state/second"
 grep -Fxq -- \
-    '-C '"$test_dir/source"' submodule update --init --filter=tree:0 --recursive' \
+    '-C '"$test_dir/source"' submodule update --init --force --filter=tree:0 --recursive' \
     "$test_dir/state/success"
 grep -Fxq '10' "$test_dir/state/sleeps"
 grep -Fxq 'Submodule checkout failed; retrying cached checkout' \

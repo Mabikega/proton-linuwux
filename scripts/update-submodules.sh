@@ -14,7 +14,7 @@ fi
 
 for attempt in first second third fourth; do
     if git -C "$source_dir" submodule update \
-        --init --filter=tree:0 --recursive; then
+        --init --force --filter=tree:0 --recursive; then
         exit 0
     fi
     if [[ $attempt == fourth ]]; then
