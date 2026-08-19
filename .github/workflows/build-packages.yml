@@ -127,7 +127,7 @@ jobs:
           mkdir upstream/build
           cd upstream/build
           ../configure.sh --build-name="$BUILD_NAME" --container-engine=docker
-          make -j"$(nproc)" redist
+          SUPPRESS_WARNINGS=1 make -j"$(nproc)" redist
 
       - name: Build Arch package
         env:
