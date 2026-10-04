@@ -18,6 +18,7 @@ input_checksums_file=${6:-}
     echo "source_tag=$source_tag"
     echo "source_commit=$source_commit"
     echo "patch_sha256=$(sha256sum LinUwUx.patch | awk '{print $1}')"
+    echo "sigsys_patch_sha256=$(sha256sum patches/linuwux-sigsys.patch | awk '{print $1}')"
     echo "patch_release=$(tr -d '[:space:]' < PATCH_RELEASE)"
     echo "repository=${GITHUB_REPOSITORY:-local}"
     echo "workflow_run=${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-local}/actions/runs/${GITHUB_RUN_ID:-local}"

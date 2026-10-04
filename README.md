@@ -1,3 +1,10 @@
+## Package updates
+
+GitHub Actions checks for upstream releases once a day at 00:17 UTC and builds
+package versions missing from the repository release. Pushes do not start builds.
+Use the workflow's manual trigger to check immediately, or enable `force` to
+rebuild packages already published.
+
 ## Add the repository
 
 Add this before the CachyOS repositories

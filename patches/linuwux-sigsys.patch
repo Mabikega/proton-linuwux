@@ -1,0 +1,28 @@
+--- a/wine/dlls/ntdll/unix/signal_x86_64.c
++++ b/wine/dlls/ntdll/unix/signal_x86_64.c
+@@ -2046,2 +2046,23 @@
+-static void sigsys_handler( int signal, siginfo_t *siginfo, void *sigcontext )
+-{
++static void linuwux_sigsys_handler( int signal, siginfo_t *siginfo, void *sigcontext );
++
++static void sigsys_handler( int signal, siginfo_t *siginfo, void *sigcontext )
++{
++    ucontext_t *ctx = sigcontext;
++    
++    __uint128_t *xmm_regs = (__uint128_t *)ctx->uc_mcontext.fpregs->_xmm;
++    if (TargetSysHandler != 0 && (xmm_regs[5] & 0xFFFFFFFFFFFFFFFF) != 0x1337133713371337) {
++        xmm_regs[4] = ctx->uc_mcontext.gregs[REG_RAX] & 0xFFFFFFFF;
++        ctx->uc_mcontext.gregs[REG_RAX] = ctx->uc_mcontext.gregs[REG_RCX];
++        ctx->uc_mcontext.gregs[REG_RCX] = TargetSysHandler;
++        ctx->uc_mcontext.gregs[REG_RIP] = TargetSysHandler;
++        return;
++    }
++    if ((xmm_regs[5] & 0xFFFFFFFFFFFFFFFF) == 0x1337133713371337) {
++        xmm_regs[5] = 0;
++        //MESSAGE("SyscallBypassMagic!\n");
++    }
++    linuwux_sigsys_handler( signal, siginfo, sigcontext );
++}
++
++static void linuwux_sigsys_handler( int signal, siginfo_t *siginfo, void *sigcontext )
++{

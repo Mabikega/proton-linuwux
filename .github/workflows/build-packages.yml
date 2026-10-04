@@ -2,7 +2,7 @@ name: Build LinUwUx packages
 
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "17 0 * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -10,17 +10,6 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches:
-      - main
-    paths:
-      - LinUwUx.patch
-      - PATCH_RELEASE
-      - patches/**
-      - packaging/**
-      - kernel-module/**
-      - scripts/**
-      - .github/workflows/build-packages.yml
 
 permissions:
   contents: write
@@ -127,7 +116,7 @@ jobs:
           mkdir upstream/build
           cd upstream/build
           ../configure.sh --build-name="$BUILD_NAME" --container-engine=docker
-          make -j"$(nproc)" redist
+          SUPPRESS_WARNINGS=1 make -j"$(nproc)" redist
 
       - name: Build Arch package
         env:
