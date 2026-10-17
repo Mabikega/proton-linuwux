@@ -75,6 +75,10 @@ printf '%s\n' \
     '}' > "$recipe_dir/compatibilitytool.vdf"
 printf '%s\n' '# Local Proton settings. This file is preserved during upgrades.' \
     > "$recipe_dir/user_settings.py"
+if [[ "$variant" == native ]]; then
+    printf '%s\n' 'user_settings = {"PROTON_USE_WOW64": "1"}' \
+        >> "$recipe_dir/user_settings.py"
+fi
 printf '%s\n' ntsync > "$recipe_dir/ntsync.conf"
 
 replace_token VDF_SHA256 \

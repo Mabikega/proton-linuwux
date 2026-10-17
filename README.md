@@ -5,6 +5,9 @@ package versions missing from the repository release. Pushes do not start builds
 Use the workflow's manual trigger to check immediately, or enable `force` to
 rebuild packages already published.
 
+The native package uses WoW64: both 32-bit and 64-bit Windows applications run
+with 64-bit host libraries.
+
 ## Add the repository
 
 Add this before the CachyOS repositories

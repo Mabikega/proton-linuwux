@@ -32,38 +32,21 @@ docker run --rm --privileged \
     -v "$output_dir:/output" \
     "$image" bash -euo pipefail -c '
         packages=(
-            base-devel sudo afdko alsa-lib lib32-alsa-lib clang cmake ccache
-            ffmpeg fontforge giflib lib32-giflib git glib2-devel glslang
-            gnutls lib32-gnutls gtk3 lib32-gtk3 libgphoto2 libpulse
-            lib32-libpulse libva lib32-libva libxcomposite
-            lib32-libxcomposite libxinerama lib32-libxinerama libxxf86vm
-            lib32-libxxf86vm lld mesa lib32-mesa mesa-libgl lib32-mesa-libgl
+            base-devel sudo afdko alsa-lib clang cmake ccache ffmpeg fontforge
+            giflib git glib2-devel glslang gnutls gtk3 libgphoto2 libpulse
+            libva libxcomposite libxinerama libxxf86vm lld mesa mesa-libgl
             meson mingw-w64-gcc mingw-w64-tools nasm opencl-headers
-            opencl-icd-loader lib32-opencl-icd-loader pcsclite lib32-pcsclite
-            perl perl-json rsync rust lib32-rust-libs python-pefile
-            python-setuptools-scm samba unixodbc v4l-utils lib32-v4l-utils
-            vulkan-headers vulkan-icd-loader lib32-vulkan-icd-loader
-            wayland-protocols wget xorg-util-macros attr lib32-attr cabextract
-            desktop-file-utils fontconfig lib32-fontconfig flac lib32-flac
-            freetype2 lib32-freetype2 libgcc lib32-gcc-libs gettext
-            lib32-gettext glib2 lib32-glib2 glibc lib32-glibc libgudev
-            lib32-libgudev libnsl lib32-libnsl libpcap lib32-libpcap
-            libunwind lib32-libunwind libvpx lib32-libvpx libwebp
-            lib32-libwebp libx11 lib32-libx11 libxcursor lib32-libxcursor
-            libxext lib32-libxext libxkbcommon lib32-libxkbcommon libxml2
-            lib32-libxml2 libxi lib32-libxi libxrandr lib32-libxrandr mpg123
-            lib32-mpg123 pipewire lib32-pipewire python python-six speex
-            lib32-speex speexdsp lib32-speexdsp atk lib32-atk cairo
-            lib32-cairo curl lib32-curl dbus-glib lib32-dbus-glib freeglut
-            lib32-freeglut gdk-pixbuf2 lib32-gdk-pixbuf2 glu lib32-glu lcms2
-            lib32-lcms2 libcaca lib32-libcaca libcanberra lib32-libcanberra
-            dbus lib32-dbus libdrm lib32-libdrm libice lib32-libice libibus
-            libnm lib32-libnm libusb lib32-libusb libvdpau lib32-libvdpau
-            libvorbis lib32-libvorbis libxft lib32-libxft libxmu lib32-libxmu
-            libxrender lib32-libxrender libxtst lib32-libxtst nspr lib32-nspr
-            openal lib32-openal pango lib32-pango sdl2-compat
-            lib32-sdl2-compat librsvg libsm lib32-libsm libtheora
-            lib32-libtheora unzip wayland lib32-wayland xz lib32-xz
+            opencl-icd-loader pcsclite perl perl-json rsync rust python-pefile
+            python-setuptools-scm samba unixodbc v4l-utils vulkan-headers
+            vulkan-icd-loader wayland-protocols wget xorg-util-macros attr
+            cabextract desktop-file-utils fontconfig flac freetype2 libgcc
+            gettext glib2 glibc libgudev libnsl libpcap libunwind libvpx
+            libwebp libx11 libxcursor libxext libxkbcommon libxml2 libxi
+            libxrandr mpg123 pipewire python python-six speex speexdsp atk
+            cairo curl dbus-glib freeglut gdk-pixbuf2 glu lcms2 libcaca
+            libcanberra dbus libdrm libice libibus libnm libusb libvdpau
+            libvorbis libxft libxmu libxrender libxtst nspr openal pango
+            sdl2-compat librsvg libsm libtheora unzip wayland xz
         )
         sed -i \
             "s/^ParallelDownloads[[:space:]]*=.*/ParallelDownloads = 5/" \
@@ -135,6 +118,7 @@ docker run --rm --privileged \
             --container-engine=none \
             --proton-sdk-image= \
             --build-name=proton-cachyos-native-linuwux \
+            --enable-wow64 \
             --without-steamrt-depends \
             --without-tts
         SUBJOBS=$(nproc) make -j1 dist
