@@ -31,13 +31,15 @@ if ! patch --batch --forward -Np1 -d "$source_dir" -i "$patch_file"; then
     exit 1
 fi
 
-# GE's preparation can move SIGSYS handling after the other signal handlers.
-# Apply this hunk separately and require its function context to match exactly.
-if ! patch --batch --forward --fuzz=0 -Np1 -d "$source_dir" \
-    -i "$project_dir/patches/linuwux-sigsys.patch"; then
-    echo "LinUwUx SIGSYS patch did not apply cleanly to $variant" >&2
-    exit 1
-fi
+# Upstream preparation moves and changes the signal handlers. Match each
+# function signature exactly so hooks cannot land in an unrelated handler.
+for handler in sigsys segv; do
+    if ! patch --batch --forward --fuzz=0 -Np1 -d "$source_dir" \
+        -i "$project_dir/patches/linuwux-$handler.patch"; then
+        echo "LinUwUx $handler patch did not apply cleanly to $variant" >&2
+        exit 1
+    fi
+done
 
 # These files are generated from server/protocol.def. Regenerating them avoids
 # depending on the line layout of generated files in different Wine forks.

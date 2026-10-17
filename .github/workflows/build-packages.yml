@@ -50,6 +50,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
+      - name: Test build scripts
+        run: |
+          for test_script in tests/*.sh; do
+            bash "$test_script"
+          done
+
       - name: Detect missing package versions
         id: detect
         env:
@@ -116,7 +122,7 @@ jobs:
           mkdir upstream/build
           cd upstream/build
           ../configure.sh --build-name="$BUILD_NAME" --container-engine=docker
-          SUPPRESS_WARNINGS=1 make -j"$(nproc)" redist
+          make SUPPRESS_WARNINGS=1 -j"$(nproc)" redist
 
       - name: Build Arch package
         env:
