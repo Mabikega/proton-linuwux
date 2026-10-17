@@ -31,6 +31,11 @@ if ! patch --batch --forward -Np1 -d "$source_dir" -i "$patch_file"; then
     exit 1
 fi
 
+# Defer these prerequisites until the generated configure dependency exists.
+# Otherwise the first architecture can run configure before autoreconf.
+patch --batch --forward --fuzz=0 -Np1 -d "$source_dir" \
+    -i "$project_dir/patches/configure-order.patch"
+
 # Upstream preparation moves and changes the signal handlers. Match each
 # function signature exactly so hooks cannot land in an unrelated handler.
 for handler in sigsys segv; do

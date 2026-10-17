@@ -1,0 +1,5 @@
+--- a/make/rules-configure.mk
++++ b/make/rules-configure.mk
+@@ -19,1 +19,1 @@
+-$$(OBJ)/.$(1)-$(3)-configure: $$($(2)_CONFIGURE_DEPS)
++$$(OBJ)/.$(1)-$(3)-configure: $$$$($(2)_CONFIGURE_DEPS)
